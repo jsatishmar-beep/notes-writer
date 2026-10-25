@@ -36,13 +36,10 @@ small{color:#6b7280}#st{text-align:center;font-weight:600;color:#6d28d9}
 #spi{max-width:100%;max-height:150px;border-radius:8px;margin-top:8px;display:none}#det{font-size:13px;color:#059669;font-weight:600;margin-top:4px}
 #prev img{width:100%;border-radius:10px;margin-top:10px;box-shadow:0 4px 14px #0003}
 </style></head><body>
-<header><h1>✍️ SKJ Handnotes Maker</h1><p>Turn any PDF into ruled notebook notes in handwriting</p></header>
+<header><h1>✍️ SKJ Handnotes Maker</h1><p>Make handwritten notes from a PDF, or turn photos into a PDF</p></header>
 <main>
 <div class="c" style="--k:#2563eb"><h2>① Upload PDF</h2><input type="file" id="pdf" accept="application/pdf"></div>
 <div class="c" style="--k:#db2777"><h2>② Handwriting style</h2>
-<label>Upload a photo (JPG) of your handwriting</label><input type="file" id="sp" accept="image/*">
-<img id="spi" alt=""><div id="det"></div>
-<small>The pen colour and slant are read from your photo. Then pick the font style that looks closest to your writing.</small>
 <label>Font style (tap one)</label><div id="fonts"></div>
 <label>Text size: <span id="sv">34</span></label><input type="range" id="size" min="22" max="48" value="34">
 <label>Slant: <span id="slv">0</span></label><input type="range" id="slant" min="-20" max="50" value="0">
@@ -54,6 +51,12 @@ small{color:#6b7280}#st{text-align:center;font-weight:600;color:#6d28d9}
 <label><input type="checkbox" id="fig" checked> Include drawings / charts from the PDF (redrawn in pen colour)</label></div>
 <button class="go" id="go" disabled>✨ Create handwritten PDF</button>
 <p id="st"></p><div id="dlw"></div><div id="prev"></div>
+<div class="c" style="--k:#0891b2;margin-top:26px"><h2>📷 Photos (JPG) → PDF</h2>
+<small>Pick one or more photos. They are put into a PDF as they are, in the order you select. No text is changed.</small>
+<input type="file" id="ph" accept="image/*" multiple style="margin-top:8px">
+<label>Page</label><select id="pgm"><option value="a4">A4 page (photo fitted)</option><option value="fit">Same shape as photo (no white edges)</option></select>
+<button class="go" id="go2" disabled>📄 Create PDF from photos</button>
+<p id="st2" style="text-align:center;font-weight:600;color:#0891b2"></p><div id="dlw2"></div></div>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -67,20 +70,6 @@ function mark(b){document.querySelectorAll(".sw").forEach(x=>x.classList.remove(
 $("cp").oninput=e=>{pen=e.target.value;mark()};
 $("pdf").onchange=e=>{file=e.target.files[0];$("go").disabled=!file};
 [["size","sv"],["slant","slv"],["thick","thv"]].forEach(([a,b])=>$(a).oninput=e=>$(b).textContent=e.target.value);
-// ---- read pen colour + slant from handwriting photo ----
-$("sp").onchange=async e=>{const f=e.target.files[0];if(!f)return;$("det").textContent="Reading your handwriting…";
-try{const im=await createImageBitmap(f),s=Math.min(1,700/im.width),w=Math.round(im.width*s),h=Math.round(im.height*s),c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.drawImage(im,0,0,w,h);
-$("spi").src=URL.createObjectURL(f);$("spi").style.display="block";
-const d=x.getImageData(0,0,w,h).data,L=new Uint8Array(w*h),hist=new Array(256).fill(0);
-for(let i=0,j=0;i<d.length;i+=4,j++){const l=(d[i]*.3+d[i+1]*.59+d[i+2]*.11)|0;L[j]=l;hist[l]++}
-let acc=0,thr=0;for(;thr<255;thr++){acc+=hist[thr];if(acc>w*h*.035)break}thr=Math.min(thr,150);
-let r=0,g=0,b=0,n=0;const P=[];
-for(let j=0;j<L.length;j++)if(L[j]<=thr){const i=j*4;r+=d[i];g+=d[i+1];b+=d[i+2];n++;if(j%2===0)P.push(j%w,(j/w)|0)}
-if(n>50){const hx=v=>Math.round(v/n).toString(16).padStart(2,"0");pen="#"+hx(r)+hx(g)+hx(b);$("cp").value=pen;mark()}
-let best=0,bs=-1;for(let k=-.5;k<=.5;k+=.05){const bins=new Float32Array(w*2+h);for(let i=0;i<P.length;i+=2){const col=Math.round(P[i]+k*P[i+1]+h*.5);if(col>=0&&col<bins.length)bins[col]++}let sc=0;for(const v of bins)sc+=v*v;if(sc>bs){bs=sc;best=k}}
-const sl=Math.max(-20,Math.min(50,Math.round(best*100*.7)));$("slant").value=sl;$("slv").textContent=sl;
-$("det").textContent=`✅ Pen colour read from photo; slant set to ${sl}. Now pick the closest font style below.`}
-catch(x){$("det").textContent="Could not read that image."}};
 const rnd=m=>(Math.random()-.5)*m;
 function paper(ctx,type){ctx.fillStyle="#fdfcf7";ctx.fillRect(0,0,W,H);if(type==="plain")return;
 ctx.strokeStyle="#a9c4e4";ctx.lineWidth=2;for(let y=TOP;y<H-50;y+=LH){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
@@ -130,5 +119,21 @@ try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.shar
 const u=URL.createObjectURL(blob),l=document.createElement("a");l.href=u;l.download="handwritten-notes.pdf";document.body.append(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)};
 $("dlw").append(b);
 }catch(err){$("st").textContent="Error: "+(err.message||err)}$("go").disabled=false};
+
+$("ph").onchange=e=>{$("go2").disabled=!e.target.files.length;$("st2").textContent=e.target.files.length?e.target.files.length+" photo(s) selected":""};
+$("go2").onclick=async()=>{$("go2").disabled=true;$("dlw2").innerHTML="";
+try{const fs=[...$("ph").files],fit=$("pgm").value==="fit",J=window.jspdf.jsPDF;let doc=null;
+for(let i=0;i<fs.length;i++){$("st2").textContent=`Adding photo ${i+1} of ${fs.length}…`;await new Promise(r=>setTimeout(r,10));
+let im;try{im=await createImageBitmap(fs[i],{imageOrientation:"from-image"})}catch(x){im=await createImageBitmap(fs[i])}
+const k=Math.min(1,2400/Math.max(im.width,im.height)),w=Math.round(im.width*k),h=Math.round(im.height*k),c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);
+const d=c.toDataURL("image/jpeg",.88);
+if(fit){const pw=210,ph=210*h/w;if(!doc)doc=new J({unit:"mm",format:[pw,ph],orientation:ph>pw?"p":"l"});else doc.addPage([pw,ph],ph>pw?"p":"l");doc.addImage(d,"JPEG",0,0,pw,ph)}
+else{const land=w>h;if(!doc)doc=new J({unit:"mm",format:"a4",orientation:land?"l":"p"});else doc.addPage("a4",land?"l":"p");const PW=land?297:210,PH=land?210:297,m=5,sc=Math.min((PW-2*m)/w,(PH-2*m)/h),dw=w*sc,dh=h*sc;doc.addImage(d,"JPEG",(PW-dw)/2,(PH-dh)/2,dw,dh)}}
+const blob=doc.output("blob");$("st2").textContent=`Done — ${fs.length} page(s).`;
+const b=document.createElement("button");b.className="go";b.textContent="⬇ Save / Share PDF";
+b.onclick=async()=>{const f=new File([blob],"photos.pdf",{type:"application/pdf"});
+try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return}}catch(x){if(x.name==="AbortError")return}
+const u=URL.createObjectURL(blob),l=document.createElement("a");l.href=u;l.download="photos.pdf";document.body.append(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)};
+$("dlw2").append(b)}catch(err){$("st2").textContent="Error: "+(err.message||err)}$("go2").disabled=false};
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
 </script></body></html>
