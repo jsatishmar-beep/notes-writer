@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=Indie+Flower&family=Kalam:wght@400&family=Patrick+Hand&family=Shadows+Into+Light&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=Kalam&family=Patrick+Hand&family=Indie+Flower&family=Shadows+Into+Light&family=Homemade+Apple&family=Reenie+Beanie&family=Nanum+Pen+Script&family=Gaegu&family=Gloria+Hallelujah&family=Handlee&family=Architects+Daughter&family=Covered+By+Your+Grace&family=Cedarville+Cursive&family=La+Belle+Aurore&family=Zeyada&family=Dekko&family=Schoolbell&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -27,23 +27,27 @@ input[type=file],select{width:100%;padding:10px;border:2px solid #e5e7eb;border-
 input[type=range]{width:100%;accent-color:var(--k)}input[type=color]{width:48px;height:36px;border:0;background:none}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .sw{width:42px;height:42px;border-radius:50%;border:4px solid #fff;box-shadow:0 0 0 2px #d1d5db;transition:.15s}.sw.on{box-shadow:0 0 0 4px #6d28d9;transform:scale(1.12)}
+#fonts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.fb{border:2px solid #e5e7eb;border-radius:12px;background:#fffef8;padding:6px 8px;text-align:left;font-size:22px;line-height:1.2;color:#1e3fb4;min-height:52px}
+.fb small{display:block;font:11px system-ui;color:#6b7280}.fb.on{border-color:#db2777;background:#fdf2f8}
 button.go{width:100%;padding:16px;font-size:18px;border:0;border-radius:16px;background:linear-gradient(120deg,#6d28d9,#db2777);color:#fff;font-weight:700;box-shadow:0 6px 18px #db277766;margin-top:6px}
 button.go:active{transform:scale(.98)}button:disabled{opacity:.45}
 small{color:#6b7280}#st{text-align:center;font-weight:600;color:#6d28d9}
-#hw{font-size:28px;min-height:44px;margin-top:8px;padding:6px 10px;background:repeating-linear-gradient(#fffef8,#fffef8 33px,#a9c4e4 34px);border-radius:10px}
+#spi{max-width:100%;max-height:150px;border-radius:8px;margin-top:8px;display:none}#det{font-size:13px;color:#059669;font-weight:600;margin-top:4px}
 #prev img{width:100%;border-radius:10px;margin-top:10px;box-shadow:0 4px 14px #0003}
-#saved{font-size:13px;color:#059669;font-weight:600;margin-top:4px}
 </style></head><body>
-<header><h1>✍️ SKJ Handnotes Maker</h1><p>Turn any PDF into ruled notebook notes in your own handwriting</p></header>
+<header><h1>✍️ SKJ Handnotes Maker</h1><p>Turn any PDF into ruled notebook notes in handwriting</p></header>
 <main>
 <div class="c" style="--k:#2563eb"><h2>① Upload PDF</h2><input type="file" id="pdf" accept="application/pdf"></div>
-<div class="c" style="--k:#db2777"><h2>② Handwriting</h2>
-<select id="font"><option>Caveat</option><option>Indie Flower</option><option>Kalam</option><option>Patrick Hand</option><option>Shadows Into Light</option></select>
-<label>Upload YOUR handwriting font (.ttf / .otf / .woff)</label><input type="file" id="ff" accept=".ttf,.otf,.woff,.woff2">
-<div id="saved"></div><small>Make a font from your writing free at Calligraphr.com. It is remembered on this device.</small>
-<div id="hw">The quick brown fox 0123</div>
-<label>Text size: <span id="sv">34</span></label><input type="range" id="size" min="24" max="48" value="34">
-<label>Messiness</label><input type="range" id="mess" min="0" max="10" value="4"></div>
+<div class="c" style="--k:#db2777"><h2>② Handwriting style</h2>
+<label>Upload a photo (JPG) of your handwriting</label><input type="file" id="sp" accept="image/*">
+<img id="spi" alt=""><div id="det"></div>
+<small>The pen colour and slant are read from your photo. Then pick the font style that looks closest to your writing.</small>
+<label>Font style (tap one)</label><div id="fonts"></div>
+<label>Text size: <span id="sv">34</span></label><input type="range" id="size" min="22" max="48" value="34">
+<label>Slant: <span id="slv">0</span></label><input type="range" id="slant" min="-20" max="50" value="0">
+<label>Pen thickness: <span id="thv">0</span></label><input type="range" id="thick" min="0" max="20" value="0">
+<label>Messiness</label><input type="range" id="mess" min="0" max="10" value="3"></div>
 <div class="c" style="--k:#059669"><h2>③ Pen colour</h2><div class="row" id="pens"></div>
 <div class="row" style="margin-top:10px"><span>Custom:</span><input type="color" id="cp" value="#1e3fb4"></div></div>
 <div class="c" style="--k:#d97706"><h2>④ Paper</h2><select id="paper"><option value="ruled">Ruled notebook + margin</option><option value="ruledn">Ruled notebook (no margin)</option><option value="plain">Plain</option></select>
@@ -54,16 +58,29 @@ small{color:#6b7280}#st{text-align:center;font-weight:600;color:#6d28d9}
 <script>
 const $=id=>document.getElementById(id);
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-let pen="#1e3fb4",file=null,fam="Caveat",custom=false;
+let pen="#1e3fb4",file=null,fam="Caveat",fsc=1;
 const W=1240,H=1754,LH=48,TOP=170,BOT=H-90,LM=190,RM=W-80;
+const FONTS=[["Caveat",1.05],["Kalam",.9],["Patrick Hand",1],["Indie Flower",.95],["Shadows Into Light",1.05],["Homemade Apple",.68],["Cedarville Cursive",.9],["La Belle Aurore",.85],["Zeyada",1.2],["Reenie Beanie",1.35],["Nanum Pen Script",1.3],["Gaegu",1.05],["Gloria Hallelujah",.78],["Handlee",.9],["Architects Daughter",.85],["Covered By Your Grace",1.05],["Dekko",.95],["Schoolbell",.9]];
+FONTS.forEach(([n,s],i)=>{const b=document.createElement("button");b.className="fb"+(i?"":" on");b.style.fontFamily=`'${n}'`;b.innerHTML=`Hello notes 123<small>${n}</small>`;b.onclick=()=>{fam=n;fsc=s;document.querySelectorAll(".fb").forEach(x=>x.classList.remove("on"));b.classList.add("on")};$("fonts").append(b)});
 ["#1e3fb4","#111111","#c0392b","#1e8449","#6c3483"].forEach((c,i)=>{const b=document.createElement("button");b.className="sw"+(i?"":" on");b.style.background=c;b.onclick=()=>{pen=c;$("cp").value=c;mark(b)};$("pens").append(b)});
 function mark(b){document.querySelectorAll(".sw").forEach(x=>x.classList.remove("on"));b&&b.classList.add("on")}
 $("cp").oninput=e=>{pen=e.target.value;mark()};
 $("pdf").onchange=e=>{file=e.target.files[0];$("go").disabled=!file};
-$("size").oninput=e=>$("sv").textContent=e.target.value;
-$("font").onchange=e=>{fam=e.target.value;custom=false;$("hw").style.fontFamily=`'${fam}'`};
-$("hw").style.fontFamily="'Caveat'";
-$("ff").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const ff=new FontFace("MyHand",await f.arrayBuffer());await ff.load();document.fonts.add(ff);fam="MyHand";custom=true;$("hw").style.fontFamily="MyHand"}catch(x){$("st").textContent="Could not read that font file."}};
+[["size","sv"],["slant","slv"],["thick","thv"]].forEach(([a,b])=>$(a).oninput=e=>$(b).textContent=e.target.value);
+// ---- read pen colour + slant from handwriting photo ----
+$("sp").onchange=async e=>{const f=e.target.files[0];if(!f)return;$("det").textContent="Reading your handwriting…";
+try{const im=await createImageBitmap(f),s=Math.min(1,700/im.width),w=Math.round(im.width*s),h=Math.round(im.height*s),c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.drawImage(im,0,0,w,h);
+$("spi").src=URL.createObjectURL(f);$("spi").style.display="block";
+const d=x.getImageData(0,0,w,h).data,L=new Uint8Array(w*h),hist=new Array(256).fill(0);
+for(let i=0,j=0;i<d.length;i+=4,j++){const l=(d[i]*.3+d[i+1]*.59+d[i+2]*.11)|0;L[j]=l;hist[l]++}
+let acc=0,thr=0;for(;thr<255;thr++){acc+=hist[thr];if(acc>w*h*.035)break}thr=Math.min(thr,150);
+let r=0,g=0,b=0,n=0;const P=[];
+for(let j=0;j<L.length;j++)if(L[j]<=thr){const i=j*4;r+=d[i];g+=d[i+1];b+=d[i+2];n++;if(j%2===0)P.push(j%w,(j/w)|0)}
+if(n>50){const hx=v=>Math.round(v/n).toString(16).padStart(2,"0");pen="#"+hx(r)+hx(g)+hx(b);$("cp").value=pen;mark()}
+let best=0,bs=-1;for(let k=-.5;k<=.5;k+=.05){const bins=new Float32Array(w*2+h);for(let i=0;i<P.length;i+=2){const col=Math.round(P[i]+k*P[i+1]+h*.5);if(col>=0&&col<bins.length)bins[col]++}let sc=0;for(const v of bins)sc+=v*v;if(sc>bs){bs=sc;best=k}}
+const sl=Math.max(-20,Math.min(50,Math.round(best*100*.7)));$("slant").value=sl;$("slv").textContent=sl;
+$("det").textContent=`✅ Pen colour read from photo; slant set to ${sl}. Now pick the closest font style below.`}
+catch(x){$("det").textContent="Could not read that image."}};
 const rnd=m=>(Math.random()-.5)*m;
 function paper(ctx,type){ctx.fillStyle="#fdfcf7";ctx.fillRect(0,0,W,H);if(type==="plain")return;
 ctx.strokeStyle="#a9c4e4";ctx.lineWidth=2;for(let y=TOP;y<H-50;y+=LH){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
@@ -84,43 +101,34 @@ async function lines(page){const tc=await page.getTextContent(),m={};
 tc.items.forEach(i=>{if(!i.str.trim())return;const k=Math.round(i.transform[5]/3);(m[k]=m[k]||[]).push(i)});
 return{items:tc.items,rows:Object.keys(m).map(Number).sort((a,b)=>b-a).map(k=>{const a=m[k].sort((p,q)=>p.transform[4]-q.transform[4]);return{t:a.map(i=>i.str).join(" ").replace(/\s+/g," ").trim(),h:Math.max(...a.map(i=>i.height||10)),x:a[0].transform[4],y:k*3}})}}
 $("go").onclick=async()=>{$("go").disabled=true;$("prev").innerHTML="";$("dlw").innerHTML="";
-try{await document.fonts.load(`40px '${fam}'`);const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
-const size=+$("size").value,mess=+$("mess").value,pt=$("paper").value,pages=[];let cv,ctx,y;
-const np=()=>{cv=document.createElement("canvas");cv.width=W;cv.height=H;ctx=cv.getContext("2d");paper(ctx,pt);pages.push(cv);y=TOP-8};np();
+try{await document.fonts.load(`40px '${fam}'`,"Hello abc");const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+const size=+$("size").value*fsc,mess=+$("mess").value,pt=$("paper").value,sk=+$("slant").value/100,th=+$("thick").value/10,pages=[];let cv,ctx,y,first;
+const np=()=>{cv=document.createElement("canvas");cv.width=W;cv.height=H;ctx=cv.getContext("2d");paper(ctx,pt);pages.push(cv);y=TOP-9;first=true};np();
 const left=pt==="ruled"?LM:90;
 for(let p=1;p<=pdf.numPages;p++){$("st").textContent=`Writing page ${p} of ${pdf.numPages}…`;await new Promise(r=>setTimeout(r,10));
 const pg=await pdf.getPage(p),L=await lines(pg),med=L.rows.map(r=>r.h).sort((a,b)=>a-b)[L.rows.length>>1]||10;
-const figs=$("fig").checked?await figures(pg,L.items):[];const ev=[...L.rows.map(r=>({k:"t",y:-r.y,r})),...figs.map(f=>({k:"f",y:f.y,f}))].sort((a,b)=>a.y-b.y);
-// text y flipped (pdf bottom-up) -> -y gives top-down order; figure y is pixel top-down on a page scaled 1.6, convert approx
-const ph=pg.getViewport({scale:1}).height;ev.forEach(e=>{if(e.k==="f")e.y=e.f.y/1.6-ph});ev.sort((a,b)=>a.y-b.y);
-if(p>1&&y>TOP+LH){y+=LH}
-for(const e of ev){if(e.k==="f"){const mw=RM-left,sc=Math.min(mw/e.f.c.width,(BOT-TOP-20)/e.f.c.height,0.8*1.6/1.6+0.2),w=e.f.c.width*sc,h=e.f.c.height*sc,hh=Math.ceil(h/LH)*LH;
-if(y+hh>BOT){np()}ctx.drawImage(e.f.c,left+(mw-w)/2+rnd(mess),y+4,w,h);y+=hh+LH/2;continue}
-const r=e.r,head=r.h>med*1.25,fs=size*(head?1.25:1),sp=fs*.3;ctx.font=`${fs}px '${fam}'`;ctx.fillStyle=pen;ctx.globalAlpha=.93;
-const words=r.t.split(" "),indent=Math.max(0,Math.min(120,(r.x-60)*0.6)),rowsOut=[];let cur=[],cw=0;const maxw=RM-left-indent;
+const figs=$("fig").checked?await figures(pg,L.items):[],ph=pg.getViewport({scale:1}).height;
+const ev=[...L.rows.map(r=>({y:-r.y,r})),...figs.map(f=>({y:f.y/1.6-ph,f}))].sort((a,b)=>a.y-b.y);
+if(p>1&&!first)y+=LH;
+for(const e of ev){if(e.f){const mw=RM-left,sc=Math.min(mw/e.f.c.width,(BOT-TOP-LH)/e.f.c.height,1),w=e.f.c.width*sc,h=e.f.c.height*sc,hh=Math.ceil((h+10)/LH)*LH;
+if(y+hh-LH>BOT)np();ctx.drawImage(e.f.c,left+(mw-w)/2+rnd(mess),y-LH+13,w,h);y+=hh;first=false;continue}
+const r=e.r,head=r.h>med*1.25,fs=size*(head?1.2:1),sp=fs*.28;ctx.font=`${fs}px '${fam}'`;
+const words=r.t.split(" "),indent=Math.max(0,Math.min(120,(r.x-60)*0.6)),rowsOut=[],maxw=RM-left-indent;let cur=[],cw=0;
 for(const w of words){const ww=ctx.measureText(w).width;if(cur.length&&cw+ww>maxw){rowsOut.push(cur);cur=[];cw=0}cur.push(w);cw+=ww+sp}if(cur.length)rowsOut.push(cur);
-if(head)y+=LH/3;
-for(const ro of rowsOut){if(y+LH>BOT)np();ctx.font=`${fs}px '${fam}'`;ctx.fillStyle=pen;let x=left+indent+rnd(mess*2);
-const base=y+LH-9;ctx.save();ctx.translate(0,rnd(mess/2));
-for(const w of ro){const ww=ctx.measureText(w).width;ctx.save();ctx.translate(x,base+rnd(mess*.8));ctx.rotate(rnd(mess*.006));ctx.fillText(w,0,0);ctx.restore();x+=ww+sp*(1+rnd(mess*.08))}
-if(head){ctx.strokeStyle=pen;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(left+indent,base+8);ctx.quadraticCurveTo((left+indent+x)/2,base+8+rnd(6)+3,x,base+7+rnd(4));ctx.stroke()}
-ctx.restore();y+=LH}ctx.globalAlpha=1;if(head)y+=LH/3}}
+if(head&&!first)y+=LH;
+for(const ro of rowsOut){if(y>BOT)np();ctx.font=`${fs}px '${fam}'`;ctx.fillStyle=pen;ctx.strokeStyle=pen;ctx.lineWidth=th*2.2;ctx.globalAlpha=.94;let x=left+indent+rnd(mess*2);
+for(const w of ro){const ww=ctx.measureText(w).width;ctx.save();ctx.translate(x,y+rnd(mess*.35));ctx.rotate(rnd(mess*.004));ctx.transform(1,0,-sk,1,0,0);ctx.fillText(w,0,0);if(th>0)ctx.strokeText(w,0,0);ctx.restore();x+=ww+sp*(1+rnd(mess*.06))}
+if(head){ctx.globalAlpha=.9;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(left+indent,y+10);ctx.quadraticCurveTo((left+indent+x)/2,y+13,x,y+10+rnd(3));ctx.stroke()}
+ctx.globalAlpha=1;y+=LH;first=false}}}
 $("st").textContent="Building PDF…";const J=window.jspdf.jsPDF,doc=new J({unit:"mm",format:"a4"});
 pages.forEach((c,i)=>{if(i)doc.addPage();doc.addImage(c.toDataURL("image/jpeg",.85),"JPEG",0,0,210,297)});
 pages.slice(0,6).forEach(c=>{const im=new Image();im.src=c.toDataURL("image/jpeg",.5);$("prev").append(im)});
 const blob=doc.output("blob");$("st").textContent=`Done — ${pages.length} page(s).`;
-const b=document.createElement("button");b.className="go";b.textContent="⬇ Save / Share PDF";b.onclick=async()=>{const f=new File([blob],"handwritten-notes.pdf",{type:"application/pdf"});
+const b=document.createElement("button");b.className="go";b.textContent="⬇ Save / Share PDF";
+b.onclick=async()=>{const f=new File([blob],"handwritten-notes.pdf",{type:"application/pdf"});
 try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return}}catch(x){if(x.name==="AbortError")return}
 const u=URL.createObjectURL(blob),l=document.createElement("a");l.href=u;l.download="handwritten-notes.pdf";document.body.append(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)};
 $("dlw").append(b);
 }catch(err){$("st").textContent="Error: "+(err.message||err)}$("go").disabled=false};
-
-// ---- keep uploaded handwriting font on this device ----
-const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open("hw",1);r.onupgradeneeded=()=>r.result.createObjectStore("f");r.onsuccess=()=>res(r.result);r.onerror=rej});
-async function idbSet(v){try{const d=await idb();d.transaction("f","readwrite").objectStore("f").put(v,"font")}catch(x){}}
-async function idbGet(){try{const d=await idb();return await new Promise(r=>{const q=d.transaction("f").objectStore("f").get("font");q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)})}catch(x){return null}}
-$("ff").addEventListener("change",async e=>{const f=e.target.files[0];if(f){await idbSet(await f.arrayBuffer());$("saved").textContent="✅ Saved on this device"}});
-(async()=>{const buf=await idbGet();if(!buf)return;try{const ff=new FontFace("MyHand",buf);await ff.load();document.fonts.add(ff);
-const o=new Option("★ My handwriting (saved)","MyHand");$("font").prepend(o);$("font").value="MyHand";fam="MyHand";$("hw").style.fontFamily="MyHand";$("saved").textContent="✅ Using your saved handwriting"}catch(x){}})();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
 </script></body></html>
