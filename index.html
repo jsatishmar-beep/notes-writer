@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=Kalam&family=Patrick+Hand&family=Indie+Flower&family=Shadows+Into+Light&family=Homemade+Apple&family=Reenie+Beanie&family=Nanum+Pen+Script&family=Gaegu&family=Gloria+Hallelujah&family=Handlee&family=Architects+Daughter&family=Covered+By+Your+Grace&family=Cedarville+Cursive&family=La+Belle+Aurore&family=Zeyada&family=Dekko&family=Schoolbell&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -39,6 +40,14 @@ small{color:#6b7280}#st{text-align:center;font-weight:600;color:#6d28d9}
 <header><h1>✍️ SKJ Handnotes Maker</h1><p>Make handwritten notes from a PDF, or turn photos into a PDF</p></header>
 <main>
 <div class="c" style="--k:#2563eb"><h2>① Upload PDF</h2><input type="file" id="pdf" accept="application/pdf"></div>
+<div class="c" style="--k:#7c3aed"><h2>① or: Photo of notes (OCR)</h2>
+<small>Reads the text from a photo or scan, lets you correct it, then writes it in the handwriting style chosen below. Works best on printed or neat writing. Needs internet.</small>
+<input type="file" id="oc" accept="image/*" multiple style="margin-top:8px">
+<button class="go" id="oc1" disabled>🔍 Read text from photo</button>
+<p id="ost" style="text-align:center;font-weight:600;color:#7c3aed"></p>
+<label>Text found (fix any mistakes here)</label>
+<textarea id="ot" rows="9" style="width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:12px;font:16px system-ui" placeholder="The text will appear here. You can also type or paste your own."></textarea>
+<button class="go" id="oc2" disabled>✨ Write this text as handwritten PDF</button></div>
 <div class="c" style="--k:#db2777"><h2>② Handwriting style</h2>
 <label>Font style (tap one)</label><div id="fonts"></div>
 <label>Text size: <span id="sv">34</span></label><input type="range" id="size" min="22" max="48" value="34">
@@ -89,19 +98,20 @@ return out}
 async function lines(page){const tc=await page.getTextContent(),m={};
 tc.items.forEach(i=>{if(!i.str.trim())return;const k=Math.round(i.transform[5]/3);(m[k]=m[k]||[]).push(i)});
 return{items:tc.items,rows:Object.keys(m).map(Number).sort((a,b)=>b-a).map(k=>{const a=m[k].sort((p,q)=>p.transform[4]-q.transform[4]);return{t:a.map(i=>i.str).join(" ").replace(/\s+/g," ").trim(),h:Math.max(...a.map(i=>i.height||10)),x:a[0].transform[4],y:k*3}})}}
-$("go").onclick=async()=>{$("go").disabled=true;$("prev").innerHTML="";$("dlw").innerHTML="";
-try{await document.fonts.load(`40px '${fam}'`,"Hello abc");const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+async function run(txt){$("go").disabled=true;$("oc2").disabled=true;$("prev").innerHTML="";$("dlw").innerHTML="";
+try{await document.fonts.load(`40px '${fam}'`,"Hello abc");const pdf=txt==null?await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise:null;
 const size=+$("size").value*fsc,mess=+$("mess").value,pt=$("paper").value,sk=+$("slant").value/100,th=+$("thick").value/10,pages=[];let cv,ctx,y,first;
 const np=()=>{cv=document.createElement("canvas");cv.width=W;cv.height=H;ctx=cv.getContext("2d");paper(ctx,pt);pages.push(cv);y=TOP-9;first=true};np();
 const left=pt==="ruled"?LM:90;
-for(let p=1;p<=pdf.numPages;p++){$("st").textContent=`Writing page ${p} of ${pdf.numPages}…`;await new Promise(r=>setTimeout(r,10));
-const pg=await pdf.getPage(p),L=await lines(pg),med=L.rows.map(r=>r.h).sort((a,b)=>a-b)[L.rows.length>>1]||10;
-const figs=$("fig").checked?await figures(pg,L.items):[],ph=pg.getViewport({scale:1}).height;
+for(let p=1;p<=(pdf?pdf.numPages:1);p++){$("st").textContent=`Writing page ${p}…`;await new Promise(r=>setTimeout(r,10));
+let L,med=10,figs=[],ph=0;
+if(pdf){const pg=await pdf.getPage(p);L=await lines(pg);med=L.rows.map(r=>r.h).sort((a,b)=>a-b)[L.rows.length>>1]||10;if($("fig").checked)figs=await figures(pg,L.items);ph=pg.getViewport({scale:1}).height}
+else L={rows:txt.split("\n").map((t,i)=>({t:t.trim(),h:10,x:60,y:-i}))};
 const ev=[...L.rows.map(r=>({y:-r.y,r})),...figs.map(f=>({y:f.y/1.6-ph,f}))].sort((a,b)=>a.y-b.y);
 if(p>1&&!first)y+=LH;
 for(const e of ev){if(e.f){const mw=RM-left,sc=Math.min(mw/e.f.c.width,(BOT-TOP-LH)/e.f.c.height,1),w=e.f.c.width*sc,h=e.f.c.height*sc,hh=Math.ceil((h+10)/LH)*LH;
 if(y+hh-LH>BOT)np();ctx.drawImage(e.f.c,left+(mw-w)/2+rnd(mess),y-LH+13,w,h);y+=hh;first=false;continue}
-const r=e.r,head=r.h>med*1.25,fs=size*(head?1.2:1),sp=fs*.28;ctx.font=`${fs}px '${fam}'`;
+if(!e.r.t){y+=LH;if(y>BOT)np();first=false;continue}const r=e.r,head=r.h>med*1.25,fs=size*(head?1.2:1),sp=fs*.28;ctx.font=`${fs}px '${fam}'`;
 const words=r.t.split(" "),indent=Math.max(0,Math.min(120,(r.x-60)*0.6)),rowsOut=[],maxw=RM-left-indent;let cur=[],cw=0;
 for(const w of words){const ww=ctx.measureText(w).width;if(cur.length&&cw+ww>maxw){rowsOut.push(cur);cur=[];cw=0}cur.push(w);cw+=ww+sp}if(cur.length)rowsOut.push(cur);
 if(head&&!first)y+=LH;
@@ -118,7 +128,11 @@ b.onclick=async()=>{const f=new File([blob],"handwritten-notes.pdf",{type:"appli
 try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return}}catch(x){if(x.name==="AbortError")return}
 const u=URL.createObjectURL(blob),l=document.createElement("a");l.href=u;l.download="handwritten-notes.pdf";document.body.append(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)};
 $("dlw").append(b);
-}catch(err){$("st").textContent="Error: "+(err.message||err)}$("go").disabled=false};
+}catch(err){$("st").textContent="Error: "+(err.message||err)}$("go").disabled=!file;$("oc2").disabled=!$("ot").value.trim()}
+$("go").onclick=()=>run(null);
+$("oc2").onclick=()=>run($("ot").value);
+$("ot").oninput=()=>$("oc2").disabled=!$("ot").value.trim();
+$("oc").onchange=e=>{$("oc1").disabled=!e.target.files.length};
 
 $("ph").onchange=e=>{$("go2").disabled=!e.target.files.length;$("st2").textContent=e.target.files.length?e.target.files.length+" photo(s) selected":""};
 $("go2").onclick=async()=>{$("go2").disabled=true;$("dlw2").innerHTML="";
@@ -135,5 +149,16 @@ b.onclick=async()=>{const f=new File([blob],"photos.pdf",{type:"application/pdf"
 try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return}}catch(x){if(x.name==="AbortError")return}
 const u=URL.createObjectURL(blob),l=document.createElement("a");l.href=u;l.download="photos.pdf";document.body.append(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)};
 $("dlw2").append(b)}catch(err){$("st2").textContent="Error: "+(err.message||err)}$("go2").disabled=false};
+$("oc1").onclick=async()=>{$("oc1").disabled=true;let out=[];
+try{if(typeof Tesseract==="undefined")throw new Error("OCR engine could not load. Check your internet and reload.");
+const fs=[...$("oc").files];let cur=0;const w=await Tesseract.createWorker("eng",1,{logger:m=>{if(m.status==="recognizing text")$("ost").textContent=`Reading photo ${cur+1} of ${fs.length}… ${Math.round(m.progress*100)}%`;else $("ost").textContent="Loading OCR engine (first time takes a moment)…"}});
+for(cur=0;cur<fs.length;cur++){let im;try{im=await createImageBitmap(fs[cur],{imageOrientation:"from-image"})}catch(x){im=await createImageBitmap(fs[cur])}
+const k=Math.min(2,2400/Math.max(im.width,im.height)),cw=Math.round(im.width*k),ch=Math.round(im.height*k),c=document.createElement("canvas");c.width=cw;c.height=ch;const x=c.getContext("2d");x.drawImage(im,0,0,cw,ch);
+const d=x.getImageData(0,0,cw,ch),p=d.data,hi=new Array(256).fill(0);for(let i=0;i<p.length;i+=4){p[i]=(p[i]*.3+p[i+1]*.59+p[i+2]*.11)|0;hi[p[i]]++}
+let a=0,t=0;for(;t<255;t++){a+=hi[t];if(a>cw*ch*.035)break}t=Math.min(t+55,175);
+for(let i=0;i<p.length;i+=4){const v=p[i]<t?0:255;p[i]=p[i+1]=p[i+2]=v;p[i+3]=255}x.putImageData(d,0,0);
+const r=await w.recognize(c);out.push(r.data.text.trim())}
+await w.terminate();$("ot").value=out.join("\n\n");$("ost").textContent="Done. Please read the text and fix mistakes, then create the PDF.";$("oc2").disabled=!$("ot").value.trim()}
+catch(err){$("ost").textContent="Error: "+(err.message||err)}$("oc1").disabled=false};
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
 </script></body></html>
